@@ -1,6 +1,6 @@
 package com.ledger.musiccatalog.controller;
 
-import com.ledger.musiccatalog.dto.SearchAlbumResponse;
+import com.ledger.musiccatalog.dto.SearchSongResponse;
 import com.ledger.musiccatalog.service.ItunesSearchService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.validation.annotation.Validated;
@@ -18,11 +18,11 @@ public class SearchController {
     }
 
     @GetMapping
-    public List<SearchAlbumResponse> search(@RequestParam(name = "query") @NotBlank String query,
-            @RequestParam(name = "type", defaultValue = "album") String type,
+    public List<SearchSongResponse> search(@RequestParam(name = "query") @NotBlank String query,
+            @RequestParam(name = "type", defaultValue = "song") String type,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "12") int size) {
-        List<SearchAlbumResponse> allResults = service.searchAlbums(query, type);
+        List<SearchSongResponse> allResults = service.searchSongs(query, type);
         int fromIndex = page * size;
         if (fromIndex >= allResults.size()) {
             return List.of();

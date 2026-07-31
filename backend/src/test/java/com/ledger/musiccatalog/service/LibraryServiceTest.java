@@ -2,8 +2,8 @@ package com.ledger.musiccatalog.service;
 
 import com.ledger.musiccatalog.dto.*;
 import com.ledger.musiccatalog.exception.ConflictException;
-import com.ledger.musiccatalog.model.Album;
-import com.ledger.musiccatalog.repository.AlbumRepository;
+import com.ledger.musiccatalog.model.Song;
+import com.ledger.musiccatalog.repository.SongRepository;
 import com.ledger.musiccatalog.repository.AppUserRepository;
 import com.ledger.musiccatalog.model.AppUser;
 import org.junit.jupiter.api.Test;
@@ -16,19 +16,19 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class LibraryServiceTest {
-    @Mock AlbumRepository repository;
+    @Mock SongRepository repository;
     @Mock AppUserRepository users;
     @InjectMocks LibraryService service;
 
-    private AlbumRequest request() { return new AlbumRequest(1440806041L, "Parachutes", "Coldplay", "Alternative", null, 10, null, 5, "Great"); }
+    private SongRequest request() { return new SongRequest(1440806041L, "Shape of You", "Ed Sheeran", "Pop", null, 233713, null, 5, "Great"); }
 
-    @Test void createsAlbumWhenAppleIdIsNew() {
+    @Test void createsSongWhenAppleIdIsNew() {
         when(repository.existsByAppleCatalogIdAndOwnerId(1440806041L, 1L)).thenReturn(false);
         when(users.getReferenceById(1L)).thenReturn(new AppUser());
-        when(repository.save(any(Album.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        AlbumResponse result = service.create(1L, request());
-        assertThat(result.title()).isEqualTo("Parachutes");
-        verify(repository).save(any(Album.class));
+        when(repository.save(any(Song.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        SongResponse result = service.create(1L, request());
+        assertThat(result.title()).isEqualTo("Shape of You");
+        verify(repository).save(any(Song.class));
     }
 
     @Test void rejectsDuplicateAppleId() {
@@ -37,7 +37,7 @@ class LibraryServiceTest {
         verify(repository, never()).save(any());
     }
 
-    @Test void throwsNotFoundWhenUpdatingMissingAlbum() {
+    @Test void throwsNotFoundWhenUpdatingMissingSong() {
         when(repository.findByIdAndOwnerId(99L, 1L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.update(1L, 99L, request())).hasMessageContaining("99");
     }

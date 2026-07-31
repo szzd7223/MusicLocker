@@ -1,10 +1,10 @@
 "use client";
 
 import { FormEvent } from "react";
-import { SearchAlbum } from "../types";
+import { SearchSong } from "../types";
 
 interface SaveDialogProps {
-  album: SearchAlbum;
+  song: SearchSong;
   rating: number;
   setRating: (value: number) => void;
   notes: string;
@@ -14,7 +14,7 @@ interface SaveDialogProps {
 }
 
 export function SaveDialog({
-  album,
+  song,
   rating,
   setRating,
   notes,
@@ -29,8 +29,8 @@ export function SaveDialog({
           ×
         </button>
         <p className="eyebrow">ADD TO YOUR SHELF</p>
-        <h2>{album.title}</h2>
-        <p className="muted">{album.artistName}</p>
+        <h2>{song.title}</h2>
+        <p className="muted">{song.artistName}</p>
         <label>
           Your rating
           <div className="star-row">

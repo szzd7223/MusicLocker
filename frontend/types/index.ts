@@ -1,33 +1,33 @@
 export type ChartPoint = { label: string; value: number };
 
-export type Album = {
+export type Song = {
   id: number;
   appleCatalogId: number;
   title: string;
   artistName: string;
   genre?: string | null;
   releaseDate?: string | null;
-  trackCount?: number | null;
+  duration?: number | null;
   artworkUrl?: string | null;
   userRating?: number | null;
   userNotes?: string | null;
 };
 
-export type SearchAlbum = Omit<Album, "id" | "userRating" | "userNotes">;
+export type SearchSong = Omit<Song, "id" | "userRating" | "userNotes">;
 
 export type Analytics = {
   summary: {
-    savedAlbums: number;
+    savedSongs: number;
     distinctArtists: number;
     distinctGenres: number;
-    totalTracks: number;
+    totalDuration: number;
     averageUserRating: number | null;
   };
   genreDistribution: ChartPoint[];
   releasesByYear: ChartPoint[];
   ratingsDistribution: ChartPoint[];
   topArtists: ChartPoint[];
-  trackCountHistogram: ChartPoint[];
+  durationHistogram: ChartPoint[];
 };
 
 export type Tab = "overview" | "discover" | "library";

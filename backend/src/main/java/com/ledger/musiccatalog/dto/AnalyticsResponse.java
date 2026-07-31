@@ -8,4 +8,4 @@ public record AnalyticsResponse(
         List<ChartPoint> releasesByYear,
         List<ChartPoint> ratingsDistribution,
         List<ChartPoint> topArtists,
-        List<ChartPoint> trackCountHistogram) { }
+        List<ChartPoint> durationHistogram) { }

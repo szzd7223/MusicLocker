@@ -20,7 +20,7 @@ class SecurityConfigurationTest {
     @Autowired MockMvc mockMvc;
 
     @Test void allowsUnauthenticatedSearchRequests() throws Exception {
-        mockMvc.perform(get("/api/search").param("query", "coldplay").param("type", "album"))
+        mockMvc.perform(get("/api/search").param("query", "coldplay").param("type", "song"))
                 .andExpect(status().isOk());
     }
 

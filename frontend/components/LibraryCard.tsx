@@ -1,24 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Album } from "../types";
-import { AlbumCard } from "./AlbumCard";
+import { Song } from "../types";
+import { SongCard } from "./SongCard";
 
 interface LibraryCardProps {
-  album: Album;
-  update: (album: Album, patch: Partial<Album>) => void;
-  remove: (album: Album) => void;
+  song: Song;
+  update: (song: Song, patch: Partial<Song>) => void;
+  remove: (song: Song) => void;
 }
 
-export function LibraryCard({ album, update, remove }: LibraryCardProps) {
+export function LibraryCard({ song, update, remove }: LibraryCardProps) {
   const [editing, setEditing] = useState(false);
-  const [rating, setRating] = useState(album.userRating ?? 3);
-  const [notes, setNotes] = useState(album.userNotes ?? "");
+  const [rating, setRating] = useState(song.userRating ?? 3);
+  const [notes, setNotes] = useState(song.userNotes ?? "");
 
   return (
     <article className="library-card">
-      <AlbumCard
-        album={album}
+      <SongCard
+        song={song}
         action={() => setEditing(!editing)}
         actionLabel={editing ? "Close editor" : "Edit details"}
       />
@@ -27,7 +27,7 @@ export function LibraryCard({ album, update, remove }: LibraryCardProps) {
           className="inline-editor"
           onSubmit={(e) => {
             e.preventDefault();
-            update(album, { userRating: rating, userNotes: notes });
+            update(song, { userRating: rating, userNotes: notes });
             setEditing(false);
           }}
         >
@@ -50,7 +50,7 @@ export function LibraryCard({ album, update, remove }: LibraryCardProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={4000}
-              placeholder="Why does this album matter to you?"
+              placeholder="Why does this song matter to you?"
             />
           </label>
           <div>
@@ -58,7 +58,7 @@ export function LibraryCard({ album, update, remove }: LibraryCardProps) {
             <button
               className="button small danger"
               type="button"
-              onClick={() => remove(album)}
+              onClick={() => remove(song)}
             >
               Remove
             </button>

@@ -1,16 +1,16 @@
 "use client";
 
 import { FormEvent } from "react";
-import { SearchAlbum } from "../types";
-import { AlbumCard } from "./AlbumCard";
+import { SearchSong } from "../types";
+import { SongCard } from "./SongCard";
 
 interface DiscoverProps {
   query: string;
   setQuery: (value: string) => void;
   submit: (event: FormEvent) => void;
   searching: boolean;
-  results: SearchAlbum[];
-  choose: (album: SearchAlbum) => void;
+  results: SearchSong[];
+  choose: (song: SearchSong) => void;
   page: number;
   onPageChange: (nextPage: number) => void;
 }
@@ -38,7 +38,7 @@ export function Discover({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search artists, albums, or a feeling…"
+          placeholder="Search artists, songs, or a feeling…"
         />
         <button className="button primary" disabled={searching}>
           {searching ? "Searching…" : "Search"}
@@ -65,11 +65,11 @@ export function Discover({
         </div>
       )}
       <div className="album-grid">
-        {results.map((album) => (
-          <AlbumCard
-            key={album.appleCatalogId}
-            album={album}
-            action={() => choose(album)}
+        {results.map((song) => (
+          <SongCard
+            key={song.appleCatalogId}
+            song={song}
+            action={() => choose(song)}
             actionLabel="Save to library"
           />
         ))}

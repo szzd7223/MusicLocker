@@ -1,4 +1,4 @@
 package com.ledger.musiccatalog.dto;
 
-public record LibrarySummary(long savedAlbums, long distinctArtists, long distinctGenres,
-                             long totalTracks, Double averageUserRating) { }
+public record LibrarySummary(long savedSongs, long distinctArtists, long distinctGenres,
+                             long totalDuration, Double averageUserRating) { }

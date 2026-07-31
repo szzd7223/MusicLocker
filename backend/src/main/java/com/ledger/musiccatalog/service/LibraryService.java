@@ -2,8 +2,8 @@ package com.ledger.musiccatalog.service;
 
 import com.ledger.musiccatalog.dto.*;
 import com.ledger.musiccatalog.exception.*;
-import com.ledger.musiccatalog.model.Album;
-import com.ledger.musiccatalog.repository.AlbumRepository;
+import com.ledger.musiccatalog.model.Song;
+import com.ledger.musiccatalog.repository.SongRepository;
 import com.ledger.musiccatalog.repository.AppUserRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -14,32 +14,71 @@ import org.springframework.data.domain.Sort;
 
 @Service
 public class LibraryService {
-    private final AlbumRepository repository; private final AppUserRepository users;
-    public LibraryService(AlbumRepository repository, AppUserRepository users) { this.repository = repository; this.users = users; }
-    public List<AlbumResponse> findAll(Long userId) { return repository.findAllByOwnerIdOrderByCreatedAtDesc(userId).stream().map(AlbumResponse::from).toList(); }
-    public PageResponse<AlbumResponse> findAllPaginated(Long userId, int page, int size) {
+    private final SongRepository repository;
+    private final AppUserRepository users;
+
+    public LibraryService(SongRepository repository, AppUserRepository users) {
+        this.repository = repository;
+        this.users = users;
+    }
+
+    public List<SongResponse> findAll(Long userId) {
+        return repository.findAllByOwnerIdOrderByCreatedAtDesc(userId).stream()
+                .map(SongResponse::from)
+                .toList();
+    }
+
+    public PageResponse<SongResponse> findAllPaginated(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Album> albumPage = repository.findAllByOwnerId(userId, pageable);
-        List<AlbumResponse> content = albumPage.getContent().stream().map(AlbumResponse::from).toList();
-        return new PageResponse<>(content, albumPage.getNumber(), albumPage.getSize(), albumPage.getTotalElements(), albumPage.getTotalPages(), albumPage.isLast());
+        Page<Song> songPage = repository.findAllByOwnerId(userId, pageable);
+        List<SongResponse> content = songPage.getContent().stream()
+                .map(SongResponse::from)
+                .toList();
+        return new PageResponse<>(
+                content,
+                songPage.getNumber(),
+                songPage.getSize(),
+                songPage.getTotalElements(),
+                songPage.getTotalPages(),
+                songPage.isLast()
+        );
     }
-    public AlbumResponse create(Long userId, AlbumRequest request) {
-        if (repository.existsByAppleCatalogIdAndOwnerId(request.appleCatalogId(), userId)) throw new ConflictException("This Apple catalog album is already in your library");
-        Album album = toEntity(request, new Album()); album.setOwner(users.getReferenceById(userId));
-        return AlbumResponse.from(repository.save(album));
+
+    public SongResponse create(Long userId, SongRequest request) {
+        if (repository.existsByAppleCatalogIdAndOwnerId(request.appleCatalogId(), userId)) {
+            throw new ConflictException("This Apple catalog song is already in your library");
+        }
+        Song song = toEntity(request, new Song());
+        song.setOwner(users.getReferenceById(userId));
+        return SongResponse.from(repository.save(song));
     }
-    public AlbumResponse update(Long userId, Long id, AlbumRequest request) {
-        Album album = repository.findByIdAndOwnerId(id, userId).orElseThrow(() -> new NotFoundException("Album " + id + " was not found"));
-        if (!album.getAppleCatalogId().equals(request.appleCatalogId()) && repository.existsByAppleCatalogIdAndOwnerId(request.appleCatalogId(), userId)) throw new ConflictException("This Apple catalog album is already in your library");
-        return AlbumResponse.from(repository.save(toEntity(request, album)));
+
+    public SongResponse update(Long userId, Long id, SongRequest request) {
+        Song song = repository.findByIdAndOwnerId(id, userId)
+                .orElseThrow(() -> new NotFoundException("Song " + id + " was not found"));
+        if (!song.getAppleCatalogId().equals(request.appleCatalogId())
+                && repository.existsByAppleCatalogIdAndOwnerId(request.appleCatalogId(), userId)) {
+            throw new ConflictException("This Apple catalog song is already in your library");
+        }
+        return SongResponse.from(repository.save(toEntity(request, song)));
     }
+
     public void delete(Long userId, Long id) {
-        Album album = repository.findByIdAndOwnerId(id, userId).orElseThrow(() -> new NotFoundException("Album " + id + " was not found"));
-        repository.delete(album);
+        Song song = repository.findByIdAndOwnerId(id, userId)
+                .orElseThrow(() -> new NotFoundException("Song " + id + " was not found"));
+        repository.delete(song);
     }
-    private Album toEntity(AlbumRequest r, Album a) {
-        a.setAppleCatalogId(r.appleCatalogId()); a.setTitle(r.title()); a.setArtistName(r.artistName()); a.setGenre(r.genre());
-        a.setReleaseDate(r.releaseDate()); a.setTrackCount(r.trackCount()); a.setArtworkUrl(r.artworkUrl());
-        a.setUserRating(r.userRating()); a.setUserNotes(r.userNotes()); return a;
+
+    private Song toEntity(SongRequest r, Song s) {
+        s.setAppleCatalogId(r.appleCatalogId());
+        s.setTitle(r.title());
+        s.setArtistName(r.artistName());
+        s.setGenre(r.genre());
+        s.setReleaseDate(r.releaseDate());
+        s.setDuration(r.duration());
+        s.setArtworkUrl(r.artworkUrl());
+        s.setUserRating(r.userRating());
+        s.setUserNotes(r.userNotes());
+        return s;
     }
 }

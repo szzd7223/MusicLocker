@@ -24,12 +24,22 @@ interface OverviewProps {
   onDiscover: () => void;
 }
 
+function formatTotalDuration(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
 export function Overview({ analytics, onDiscover }: OverviewProps) {
   const cards = analytics
     ? [
-        { label: "Albums saved", value: analytics.summary.savedAlbums },
+        { label: "Songs saved", value: analytics.summary.savedSongs },
         { label: "Artists explored", value: analytics.summary.distinctArtists },
-        { label: "Genres in rotation", value: analytics.summary.distinctGenres },
+        { label: "Total duration", value: formatTotalDuration(analytics.summary.totalDuration) },
         {
           label: "Average rating",
           value: analytics.summary.averageUserRating
@@ -39,18 +49,18 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
       ]
     : [];
 
-  if (!analytics || analytics.summary.savedAlbums === 0) {
+  if (!analytics || analytics.summary.savedSongs === 0) {
     return (
       <section className="empty-state">
         <div className="empty-art">♫</div>
         <p className="eyebrow">YOUR CANVAS IS READY</p>
         <h2>Your library is waiting for its first note.</h2>
         <p>
-          Find an album you love, save it, and this dashboard will turn your
+          Find a song you love, save it, and this dashboard will turn your
           collection into a story.
         </p>
         <button className="button primary" onClick={onDiscover}>
-          Discover albums <span>→</span>
+          Discover songs <span>→</span>
         </button>
       </section>
     );
@@ -192,12 +202,12 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard
-          title="Album length"
-          subtitle="The shape of your listening sessions"
+          title="Song length"
+          subtitle="The length of your tracks"
           wide
         >
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={analytics.trackCountHistogram}>
+            <BarChart data={analytics.durationHistogram}>
               <CartesianGrid vertical={false} stroke="var(--line)" />
               <XAxis dataKey="label" />
               <YAxis allowDecimals={false} />

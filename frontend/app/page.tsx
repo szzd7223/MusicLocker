@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Album, Analytics, SearchAlbum, Tab, PageResponse } from "../types";
+import { Song, Analytics, SearchSong, Tab, PageResponse } from "../types";
 import { API, apiError } from "../utils/api";
 import { AuthScreen } from "../components/AuthScreen";
 import { Overview } from "../components/Overview";
@@ -14,16 +14,16 @@ export default function Home() {
   const [token, setToken] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [tab, setTab] = useState<Tab>("overview");
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("register");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [results, setResults] = useState<SearchAlbum[]>([]);
+  const [results, setResults] = useState<SearchSong[]>([]);
   const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<SearchAlbum | null>(null);
+  const [selected, setSelected] = useState<SearchSong | null>(null);
   const [rating, setRating] = useState(4);
   const [notes, setNotes] = useState("");
   const [darkMode, setDarkMode] = useState(false);
@@ -88,10 +88,10 @@ export default function Home() {
     setNotice("");
     try {
       const data = (await request(
-        `/api/search?query=${encodeURIComponent(queryText.trim())}&type=album&page=${targetPage}&size=12`,
+        `/api/search?query=${encodeURIComponent(queryText.trim())}&type=song&page=${targetPage}&size=12`,
         {},
         null
-      )) as SearchAlbum[];
+      )) as SearchSong[];
       setResults(data);
       setSearchPage(targetPage);
     } catch (error) {
@@ -141,7 +141,7 @@ export default function Home() {
         `/api/library?page=${pageToFetch}&size=12`,
         {},
         accessToken
-      )) as PageResponse<Album>;
+      )) as PageResponse<Song>;
 
       // If we are on a page that is now empty (e.g. due to deletes), pull the previous page
       if (libraryData.content.length === 0 && pageToFetch > 0) {
@@ -150,11 +150,11 @@ export default function Home() {
           `/api/library?page=${pageToFetch}&size=12`,
           {},
           accessToken
-        )) as PageResponse<Album>;
+        )) as PageResponse<Song>;
       }
 
       const insight = (await request("/api/analytics", {}, accessToken)) as Analytics;
-      setAlbums(libraryData.content);
+      setSongs(libraryData.content);
       setTotalPages(libraryData.totalPages);
       setLibraryPage(libraryData.pageNumber);
       setTotalElements(libraryData.totalElements);
@@ -215,37 +215,37 @@ export default function Home() {
       await refresh(token, 0);
       setTab("library");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not save this album.");
+      setNotice(error instanceof Error ? error.message : "Could not save this song.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function updateAlbum(album: Album, patch: Partial<Album>) {
+  async function updateSong(song: Song, patch: Partial<Song>) {
     setLoading(true);
     try {
-      await request(`/api/library/${album.id}`, {
+      await request(`/api/library/${song.id}`, {
         method: "PUT",
-        body: JSON.stringify({ ...album, ...patch }),
+        body: JSON.stringify({ ...song, ...patch }),
       });
-      setNotice("Album details updated.");
+      setNotice("Song details updated.");
       await refresh();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not update album.");
+      setNotice(error instanceof Error ? error.message : "Could not update song.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function removeAlbum(album: Album) {
-    if (!window.confirm(`Remove “${album.title}” from your library?`)) return;
+  async function removeSong(song: Song) {
+    if (!window.confirm(`Remove “${song.title}” from your library?`)) return;
     setLoading(true);
     try {
-      await request(`/api/library/${album.id}`, { method: "DELETE" });
-      setNotice("Album removed.");
+      await request(`/api/library/${song.id}`, { method: "DELETE" });
+      setNotice("Song removed.");
       await refresh();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not remove album.");
+      setNotice(error instanceof Error ? error.message : "Could not remove song.");
     } finally {
       setLoading(false);
     }
@@ -255,7 +255,7 @@ export default function Home() {
     window.localStorage.removeItem("record-room-token");
     window.localStorage.removeItem("record-room-username");
     setToken(null);
-    setAlbums([]);
+    setSongs([]);
     setAnalytics(null);
     setNotice("Signed out safely.");
   }
@@ -324,8 +324,8 @@ export default function Home() {
           submit={runSearch}
           searching={searching}
           results={results}
-          choose={(album) => {
-            setSelected(album);
+          choose={(song) => {
+            setSelected(song);
             setRating(4);
             setNotes("");
           }}
@@ -337,10 +337,10 @@ export default function Home() {
       )}
       {tab === "library" && (
         <Library
-          albums={albums}
+          songs={songs}
           onDiscover={() => setTab("discover")}
-          onUpdate={updateAlbum}
-          onRemove={removeAlbum}
+          onUpdate={updateSong}
+          onRemove={removeSong}
           page={libraryPage}
           totalPages={totalPages}
           onPageChange={(nextPage) => {
@@ -351,7 +351,7 @@ export default function Home() {
       )}
       {selected && (
         <SaveDialog
-          album={selected}
+          song={selected}
           rating={rating}
           setRating={setRating}
           notes={notes}

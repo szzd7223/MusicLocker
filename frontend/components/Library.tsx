@@ -1,20 +1,20 @@
 "use client";
 
-import { Album } from "../types";
+import { Song } from "../types";
 import { LibraryCard } from "./LibraryCard";
 
 interface LibraryProps {
-  albums: Album[];
+  songs: Song[];
   onDiscover: () => void;
-  onUpdate: (album: Album, patch: Partial<Album>) => void;
-  onRemove: (album: Album) => void;
+  onUpdate: (song: Song, patch: Partial<Song>) => void;
+  onRemove: (song: Song) => void;
   page: number;
   totalPages: number;
   onPageChange: (nextPage: number) => void;
 }
 
 export function Library({
-  albums,
+  songs,
   onDiscover,
   onUpdate,
   onRemove,
@@ -27,17 +27,17 @@ export function Library({
       <div className="section-title">
         <div>
           <p className="eyebrow">YOUR SHELVES</p>
-          <h2>The albums that stay.</h2>
+          <h2>The songs that stay.</h2>
         </div>
         <button className="button primary" onClick={onDiscover}>
-          Add an album <span>+</span>
+          Add a song <span>+</span>
         </button>
       </div>
-      {albums.length === 0 ? (
+      {songs.length === 0 ? (
         <div className="empty-state compact">
           <div className="empty-art">▤</div>
-          <h2>No albums on the shelf yet.</h2>
-          <p>Discover a record and make this space yours.</p>
+          <h2>No songs on the shelf yet.</h2>
+          <p>Discover a track and make this space yours.</p>
           <button className="button primary" onClick={onDiscover}>
             Explore the catalog
           </button>
@@ -45,10 +45,10 @@ export function Library({
       ) : (
         <>
           <div className="album-grid library-grid">
-            {albums.map((album) => (
+            {songs.map((song) => (
               <LibraryCard
-                key={album.id}
-                album={album}
+                key={song.id}
+                song={song}
                 update={onUpdate}
                 remove={onRemove}
               />
