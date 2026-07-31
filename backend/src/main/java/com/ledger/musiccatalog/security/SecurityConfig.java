@@ -11,8 +11,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.cors.*;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Configuration
 public class SecurityConfig {
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
     @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter, RestAuthenticationEntryPoint authenticationEntryPoint) throws Exception {
         return http.csrf(csrf -> csrf.disable()).cors(cors -> {}).sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -21,9 +26,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/search", "/api/search/**").permitAll()
                         .requestMatchers("/api/library/**").authenticated()
                         .requestMatchers("/api/analytics/**").authenticated()
+                        .requestMatchers("/api/curator/**").authenticated()
                         .anyRequest().denyAll())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())).addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class).build();
     }
-    @Bean CorsConfigurationSource corsConfigurationSource() { CorsConfiguration c = new CorsConfiguration(); c.setAllowedOrigins(List.of("http://localhost:3000")); c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); c.setAllowedHeaders(List.of("Authorization", "Content-Type")); UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/**", c); return source; }
+    @Bean CorsConfigurationSource corsConfigurationSource() { CorsConfiguration c = new CorsConfiguration(); c.setAllowedOrigins(allowedOrigins); c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); c.setAllowedHeaders(List.of("Authorization", "Content-Type")); UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/**", c); return source; }
 }

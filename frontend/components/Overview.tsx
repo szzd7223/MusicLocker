@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Analytics } from "../types";
+import { Analytics, Curation } from "../types";
 import { COLORS } from "../utils/api";
 import { ChartCard } from "./ChartCard";
 import { LegendLike } from "./LegendLike";
@@ -22,6 +22,10 @@ import { LegendLike } from "./LegendLike";
 interface OverviewProps {
   analytics: Analytics | null;
   onDiscover: () => void;
+  curation: Curation | null;
+  generatingCuration: boolean;
+  onGenerateCuration: () => void;
+  onQuickSearch: (queryText: string) => void;
 }
 
 function formatTotalDuration(ms: number) {
@@ -34,7 +38,14 @@ function formatTotalDuration(ms: number) {
   return `${minutes}m`;
 }
 
-export function Overview({ analytics, onDiscover }: OverviewProps) {
+export function Overview({
+  analytics,
+  onDiscover,
+  curation,
+  generatingCuration,
+  onGenerateCuration,
+  onQuickSearch,
+}: OverviewProps) {
   const cards = analytics
     ? [
         { label: "Songs saved", value: analytics.summary.savedSongs },
@@ -75,6 +86,7 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
         </div>
         <span className="live-dot">Updated live</span>
       </div>
+      
       <div className="metric-grid">
         {cards.map((card) => (
           <article className="metric-card" key={card.label}>
@@ -83,7 +95,112 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
           </article>
         ))}
       </div>
+
       <div className="chart-grid">
+        {/* Widescreen AI Music Curator Section */}
+        <ChartCard
+          title="Gemini Music Curator"
+          subtitle="Personalized library breakdown & critiques"
+          wide
+        >
+          {!curation && !generatingCuration ? (
+            <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
+              <p style={{ margin: "0 0 1.5rem", fontSize: "1.05rem", color: "var(--ink-muted)" }}>
+                Let Gemini analyze your ratings, notes, and genres to uncover your musical archetype.
+              </p>
+              <button className="button primary" onClick={onGenerateCuration}>
+                Ask Gemini Curator <span>✦</span>
+              </button>
+            </div>
+          ) : generatingCuration ? (
+            <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
+              <div className="loading-line" style={{ position: "relative", marginBottom: "1.5rem" }} />
+              <p className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: "var(--ink-muted)" }}>
+                Analyzing patterns, drafting critique notes...
+              </p>
+            </div>
+          ) : (
+            <div className="curator-insights fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                  <span className="eyebrow" style={{ letterSpacing: "0.1em" }}>YOUR PERSONA</span>
+                  <div style={{
+                    display: "inline-block",
+                    padding: "0.35rem 0.85rem",
+                    borderRadius: "20px",
+                    backgroundColor: "rgba(255, 121, 89, 0.12)",
+                    color: "var(--primary)",
+                    border: "1px solid rgba(255, 121, 89, 0.3)",
+                    fontWeight: "bold",
+                    fontSize: "0.95rem"
+                  }}>
+                    {curation.persona}
+                  </div>
+                </div>
+                {curation.isMock && (
+                  <span className="mono" style={{
+                    fontSize: "0.8rem",
+                    backgroundColor: "var(--line)",
+                    padding: "0.25rem 0.6rem",
+                    borderRadius: "4px",
+                    color: "var(--ink-muted)"
+                  }}>
+                    Showing Demo insights (Set GEMINI_API_KEY for live curations)
+                  </span>
+                )}
+                <button className="button ghost small" onClick={onGenerateCuration} style={{ alignSelf: "flex-end" }}>
+                  Regenerate ✦
+                </button>
+              </div>
+
+              <div style={{ borderTop: "1px solid var(--line)", paddingTop: "1rem" }}>
+                <p style={{ fontSize: "1.1rem", fontStyle: "italic", margin: "0 0 0.75rem", color: "var(--ink)" }}>
+                  &ldquo;{curation.summary}&rdquo;
+                </p>
+                <p style={{ fontSize: "0.95rem", margin: 0, color: "var(--primary)", fontWeight: 5 }}>
+                  <strong>Curator Critique:</strong> {curation.critique}
+                </p>
+              </div>
+
+              <div style={{ borderTop: "1px solid var(--line)", paddingTop: "1rem" }}>
+                <span className="eyebrow" style={{ display: "block", marginBottom: "0.75rem" }}>CURATED RECOMMENDATIONS</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {curation.recommendations.map((rec, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "0.5rem",
+                        padding: "0.75rem",
+                        backgroundColor: "var(--line)",
+                        borderRadius: "8px"
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                        <span style={{ fontWeight: 6, fontSize: "0.95rem" }}>{rec.title}</span>
+                        <span style={{ fontSize: "0.85rem", color: "var(--ink-muted)" }}>by {rec.artist}</span>
+                        <span style={{ fontSize: "0.8rem", color: "var(--ink-muted)", fontStyle: "italic", marginTop: "0.15rem" }}>
+                          &ldquo;{rec.rationale}&rdquo;
+                        </span>
+                      </div>
+                      <button
+                        className="text-button"
+                        onClick={() => onQuickSearch(`${rec.title} ${rec.artist}`)}
+                        style={{ fontSize: "0.85rem", fontWeight: "bold" }}
+                      >
+                        Search Track →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </ChartCard>
+
         <ChartCard
           title="Genres in rotation"
           subtitle="The colours of your collection"
@@ -126,6 +243,7 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
             <LegendLike data={analytics.genreDistribution} />
           </div>
         </ChartCard>
+
         <ChartCard
           title="Releases through time"
           subtitle="A timeline of the music you keep"
@@ -153,6 +271,7 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
+
         <ChartCard
           title="Your rating ritual"
           subtitle="How generously you score your favourites"
@@ -174,6 +293,7 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
+
         <ChartCard title="Artists on repeat" subtitle="The voices you return to">
           <ResponsiveContainer width="100%" height={250}>
             <BarChart
@@ -201,6 +321,7 @@ export function Overview({ analytics, onDiscover }: OverviewProps) {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
+
         <ChartCard
           title="Song length"
           subtitle="The length of your tracks"

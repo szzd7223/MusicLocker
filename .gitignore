@@ -48,3 +48,7 @@ backend/data/
 **/data/*.trace.db
 *.log
 *.log.*
+
+BACKEND_GUIDE.md
+FRONTEND_GUIDE.md
+PROGRESS.md

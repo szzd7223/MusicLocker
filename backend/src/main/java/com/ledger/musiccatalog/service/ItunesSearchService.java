@@ -34,12 +34,13 @@ public class ItunesSearchService {
         String responseBody;
         try {
             responseBody = client.get().uri(builder -> builder.path("/search").queryParam("term", query)
-                            .queryParam("entity", "song").queryParam("limit", 200).build())
+                    .queryParam("entity", "song").queryParam("limit", 40).build())
                     .header(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; MusicCatalogInsights/1.0)")
                     .header(HttpHeaders.ACCEPT, "application/json")
                     .retrieve().body(String.class);
         } catch (RestClientResponseException ex) {
-            throw new UpstreamServiceException("The iTunes catalog is temporarily unavailable (HTTP " + ex.getStatusCode().value() + ")");
+            throw new UpstreamServiceException(
+                    "The iTunes catalog is temporarily unavailable (HTTP " + ex.getStatusCode().value() + ")");
         } catch (RestClientException ex) {
             throw new UpstreamServiceException("The iTunes catalog could not be reached");
         }
@@ -65,7 +66,6 @@ public class ItunesSearchService {
                 n.path("primaryGenreName").asText(null),
                 releaseDate,
                 n.path("trackTimeMillis").isNumber() ? n.path("trackTimeMillis").asInt() : null,
-                n.path("artworkUrl100").asText(null)
-        );
+                n.path("artworkUrl100").asText(null));
     }
 }

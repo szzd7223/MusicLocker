@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Song, Analytics, SearchSong, Tab, PageResponse } from "../types";
+import { Song, Analytics, SearchSong, Tab, PageResponse, Curation } from "../types";
 import { API, apiError } from "../utils/api";
 import { AuthScreen } from "../components/AuthScreen";
 import { Overview } from "../components/Overview";
@@ -32,6 +32,10 @@ export default function Home() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [searchPage, setSearchPage] = useState(0);
+
+  // AI Curation states
+  const [curation, setCuration] = useState<Curation | null>(null);
+  const [generatingCuration, setGeneratingCuration] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("record-room-token");
@@ -166,6 +170,20 @@ export default function Home() {
     }
   }
 
+  async function generateCuration() {
+    if (!token) return;
+    setGeneratingCuration(true);
+    setNotice("");
+    try {
+      const data = (await request("/api/curator", {}, token)) as Curation;
+      setCuration(data);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Curator generation failed.");
+    } finally {
+      setGeneratingCuration(false);
+    }
+  }
+
   async function authenticate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
@@ -257,6 +275,7 @@ export default function Home() {
     setToken(null);
     setSongs([]);
     setAnalytics(null);
+    setCuration(null);
     setNotice("Signed out safely.");
   }
 
@@ -316,7 +335,21 @@ export default function Home() {
         </div>
       )}
       {loading && <div className="loading-line" />}
-      {tab === "overview" && <Overview analytics={analytics} onDiscover={() => setTab("discover")} />}
+      {tab === "overview" && (
+        <Overview
+          analytics={analytics}
+          onDiscover={() => setTab("discover")}
+          curation={curation}
+          generatingCuration={generatingCuration}
+          onGenerateCuration={generateCuration}
+          onQuickSearch={(queryText) => {
+            setSearch(queryText);
+            setDebouncedSearch(queryText);
+            setTab("discover");
+            void executeSearchQuery(queryText, 0);
+          }}
+        />
+      )}
       {tab === "discover" && (
         <Discover
           query={search}

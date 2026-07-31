@@ -20,6 +20,7 @@ Initially, the project was designed to catalog entire albums. However, to create
 - User registration and BCrypt-hashed passwords
 - JWT-protected, user-owned library CRUD endpoints for songs
 - User-scoped analytics API with five song-related datasets (genre, release year, rating, artists, and duration bins)
+- **AI Music Curator:** Generates a custom music archetype, a friendly critique, and 5 track recommendations based on the user's library using the `gemini-3.5-flash-lite` model.
 - Validation and centralized JSON error responses
 - Service-level tests for song repository and CRUD services
 - Next.js UI including real-time debounced search, rating dialog, library grid pagination, and dashboard analytics
@@ -71,6 +72,7 @@ Use the returned `token` as a Bearer token for `/api/library` requests.
 | PUT | `/api/library/{id}` | Update saved song rating or notes | Yes |
 | DELETE | `/api/library/{id}` | Remove a saved song | Yes |
 | GET | `/api/analytics` | Summary metrics and five chart datasets for the current user's library | Yes |
+| GET | `/api/curator` | Retrieve AI Curator analysis and recommendations (utilizing `gemini-3.5-flash-lite`) | Yes |
 
 ---
 
@@ -82,6 +84,7 @@ Use the returned `token` as a Bearer token for `/api/library` requests.
 - API: required search and CRUD routes, REST status codes, validation, and centralized errors are included.
 - Authentication: BCrypt-hashed local accounts and JWT bearer-token authentication protect library reads and mutations; each user can access only their own songs.
 - Analytics: the backend exposes genre, release-year, ratings, artist, and song-duration datasets for the dashboard.
+- **AI Feature:** Widescreen interactive Curator Card on the dashboard generating musical personas and 5 custom track recommendations based on saved songs (utilizing `gemini-3.5-flash-lite`).
 
 The search endpoint supports `type=song` only because songs are the declared focus.
 
@@ -93,7 +96,7 @@ During the implementation of advanced performance and pagination features, I enc
 
 ### 1. The iTunes Search API "Offset" Fiasco
 *   **The Problem:** I wanted to implement search pagination to optimize page sizes and prevent layout gaps on the frontend. The iTunes Search API is widely rumored in community forums to support an `offset` parameter for skipping items. However, during live testing, I found that Apple's endpoint completely ignores the `offset` query parameter when searching, returning the exact same first-page results even for `offset=12` or `offset=24`.
-*   **The Fix:** I implemented a server-side slicing mechanism on the backend. The `ItunesSearchService` now fetches a larger batch of up to 200 items (the maximum limit supported by Apple) in a single request, caches the full list, and the `SearchController` dynamically slices the cached results in-memory using `allResults.subList(fromIndex, toIndex)` based on the requested `page` and `size`. This makes search page switches instantaneous, completely resolves the duplicate results issue, and drastically reduces round-trip latency.
+*   **The Fix:** I implemented a server-side slicing mechanism on the backend. The `ItunesSearchService` now fetches a larger batch of up to 40 items (the maximum limit supported by Apple) in a single request, caches the full list, and the `SearchController` dynamically slices the cached results in-memory using `allResults.subList(fromIndex, toIndex)` based on the requested `page` and `size`. This makes search page switches instantaneous, completely resolves the duplicate results issue, and drastically reduces round-trip latency.
 
 ### 2. Upstream Rate Limiting & Caching
 *   **The Problem:** The iTunes Search API is rate-limited to about 20 requests per minute. With active searching, this threshold is easily breached, leading to `429 Too Many Requests` upstream errors.

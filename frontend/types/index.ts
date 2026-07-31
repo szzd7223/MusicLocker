@@ -30,6 +30,20 @@ export type Analytics = {
   durationHistogram: ChartPoint[];
 };
 
+export type Recommendation = {
+  title: string;
+  artist: string;
+  rationale: string;
+};
+
+export type Curation = {
+  persona: string;
+  summary: string;
+  critique: string;
+  recommendations: Recommendation[];
+  isMock: boolean;
+};
+
 export type Tab = "overview" | "discover" | "library";
 export type AuthMode = "login" | "register";
 
