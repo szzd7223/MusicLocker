@@ -103,7 +103,14 @@ export function Overview({
           subtitle="Personalized library breakdown & critiques"
           wide
         >
-          {!curation && !generatingCuration ? (
+          {generatingCuration ? (
+            <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
+              <div className="loading-line" style={{ position: "relative", marginBottom: "1.5rem" }} />
+              <p className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: "var(--ink-muted)" }}>
+                Analyzing patterns, drafting critique notes...
+              </p>
+            </div>
+          ) : !curation ? (
             <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
               <p style={{ margin: "0 0 1.5rem", fontSize: "1.05rem", color: "var(--ink-muted)" }}>
                 Let Gemini analyze your ratings, notes, and genres to uncover your musical archetype.
@@ -111,13 +118,6 @@ export function Overview({
               <button className="button primary" onClick={onGenerateCuration}>
                 Ask Gemini Curator <span>✦</span>
               </button>
-            </div>
-          ) : generatingCuration ? (
-            <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
-              <div className="loading-line" style={{ position: "relative", marginBottom: "1.5rem" }} />
-              <p className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: "var(--ink-muted)" }}>
-                Analyzing patterns, drafting critique notes...
-              </p>
             </div>
           ) : (
             <div className="curator-insights fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
