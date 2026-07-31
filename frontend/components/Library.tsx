@@ -8,6 +8,9 @@ interface LibraryProps {
   onDiscover: () => void;
   onUpdate: (album: Album, patch: Partial<Album>) => void;
   onRemove: (album: Album) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (nextPage: number) => void;
 }
 
 export function Library({
@@ -15,6 +18,9 @@ export function Library({
   onDiscover,
   onUpdate,
   onRemove,
+  page,
+  totalPages,
+  onPageChange,
 }: LibraryProps) {
   return (
     <section className="content fade-in">
@@ -37,16 +43,55 @@ export function Library({
           </button>
         </div>
       ) : (
-        <div className="album-grid library-grid">
-          {albums.map((album) => (
-            <LibraryCard
-              key={album.id}
-              album={album}
-              update={onUpdate}
-              remove={onRemove}
-            />
-          ))}
-        </div>
+        <>
+          <div className="album-grid library-grid">
+            {albums.map((album) => (
+              <LibraryCard
+                key={album.id}
+                album={album}
+                update={onUpdate}
+                remove={onRemove}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div
+              className="pagination-bar"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "1.5rem",
+                marginTop: "2.5rem",
+                padding: "1.5rem 0",
+                borderTop: "1px solid var(--line)",
+              }}
+            >
+              <button
+                className="button ghost"
+                disabled={page === 0}
+                onClick={() => onPageChange(page - 1)}
+                style={{ opacity: page === 0 ? 0.4 : 1 }}
+              >
+                ← Previous
+              </button>
+              <span
+                className="mono"
+                style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem" }}
+              >
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                className="button ghost"
+                disabled={page === totalPages - 1}
+                onClick={() => onPageChange(page + 1)}
+                style={{ opacity: page === totalPages - 1 ? 0.4 : 1 }}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

@@ -98,12 +98,16 @@ $headers = @{ Authorization = "Bearer $token" }
 ### 2. Search the public catalog
 
 ```powershell
+# Default search (returns first 12 items, cached in-memory and sliced)
 Invoke-RestMethod 'http://localhost:8080/api/search?query=coldplay&type=album'
+
+# Paginated search (retrieves specific pages from the 200-item cached batch)
+Invoke-RestMethod 'http://localhost:8080/api/search?query=coldplay&type=album&page=1&size=12'
 ```
 
-Expected result: a list of albums. Each item has an `appleCatalogId`, `title`, and `artistName`; copy an `appleCatalogId` from the result. This route is public, so it does not need `$headers`.
+Expected result: a list of albums. Each item has an `appleCatalogId`, `title`, and `artistName`. The search endpoint retrieves a full batch of 200 results from iTunes, caches them in-memory to prevent rate-limiting, and slices them using the `page` and `size` parameters to bypass Apple's lack of `offset` support.
 
-If search reports `502 Bad Gateway`, your backend is running correctly but Apple's public catalog is temporarily rejecting or unavailable to the request. Try again later. If the terminal mentions `text/javascript` and `JsonNode`, make sure you restarted after the latest backend change; the app now handles iTunes' unusual JSON content-type header.
+If search reports `502 Bad Gateway`, your backend is running correctly but Apple's public catalog is temporarily rejecting or unavailable to the request. Try again later.
 
 ### 3. Save an album
 
@@ -129,7 +133,11 @@ Expected result: the returned album contains an `id`, plus `createdAt` and `upda
 ### 4. Read, update, and delete
 
 ```powershell
+# Get all saved albums (unpaginated list wrapper for backward compatibility)
 Invoke-RestMethod 'http://localhost:8080/api/library' -Headers $headers
+
+# Get a paginated page of saved albums (formatted with page count, elements count metadata)
+Invoke-RestMethod 'http://localhost:8080/api/library?page=0&size=12' -Headers $headers
 
 Invoke-RestMethod -Method Put -Uri 'http://localhost:8080/api/library/1' `
   -Headers $headers -ContentType 'application/json' `

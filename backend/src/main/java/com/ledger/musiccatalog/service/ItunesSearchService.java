@@ -15,6 +15,7 @@ import org.springframework.web.client.RestClientException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.StreamSupport;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 public class ItunesSearchService {
@@ -26,13 +27,14 @@ public class ItunesSearchService {
         this.objectMapper = objectMapper;
     }
 
+    @Cacheable(value = "itunesSearch", key = "#p0")
     public List<SearchAlbumResponse> searchAlbums(String query, String type) {
         if (!"album".equalsIgnoreCase(type))
             throw new BadRequestException("Only type=album is supported in this album-focused project");
         String responseBody;
         try {
             responseBody = client.get().uri(builder -> builder.path("/search").queryParam("term", query)
-                            .queryParam("entity", "album").queryParam("limit", 25).build())
+                            .queryParam("entity", "album").queryParam("limit", 200).build())
                     .header(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; MusicCatalogInsights/1.0)")
                     .header(HttpHeaders.ACCEPT, "application/json")
                     .retrieve().body(String.class);

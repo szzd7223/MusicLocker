@@ -19,7 +19,15 @@ public class SearchController {
 
     @GetMapping
     public List<SearchAlbumResponse> search(@RequestParam(name = "query") @NotBlank String query,
-            @RequestParam(name = "type", defaultValue = "album") String type) {
-        return service.searchAlbums(query, type);
+            @RequestParam(name = "type", defaultValue = "album") String type,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "12") int size) {
+        List<SearchAlbumResponse> allResults = service.searchAlbums(query, type);
+        int fromIndex = page * size;
+        if (fromIndex >= allResults.size()) {
+            return List.of();
+        }
+        int toIndex = Math.min(fromIndex + size, allResults.size());
+        return allResults.subList(fromIndex, toIndex);
     }
 }

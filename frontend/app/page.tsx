@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Album, Analytics, SearchAlbum, Tab } from "../types";
+import { Album, Analytics, SearchAlbum, Tab, PageResponse } from "../types";
 import { API, apiError } from "../utils/api";
 import { AuthScreen } from "../components/AuthScreen";
 import { Overview } from "../components/Overview";
@@ -20,12 +20,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("register");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [results, setResults] = useState<SearchAlbum[]>([]);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<SearchAlbum | null>(null);
   const [rating, setRating] = useState(4);
   const [notes, setNotes] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+
+  const [libraryPage, setLibraryPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [searchPage, setSearchPage] = useState(0);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("record-room-token");
@@ -49,6 +55,51 @@ export default function Home() {
   useEffect(() => {
     if (token) void refresh(token);
   }, [token]);
+
+  // Handle catalog search debouncing
+  useEffect(() => {
+    if (!search.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Execute catalog search when debounced term changes
+  useEffect(() => {
+    if (!debouncedSearch.trim()) {
+      setResults([]);
+      return;
+    }
+    void executeSearchQuery(debouncedSearch, 0);
+  }, [debouncedSearch]);
+
+  async function executeSearchQuery(queryText: string, targetPage = 0) {
+    if (!queryText.trim()) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    setNotice("");
+    try {
+      const data = (await request(
+        `/api/search?query=${encodeURIComponent(queryText.trim())}&type=album&page=${targetPage}&size=12`,
+        {},
+        null
+      )) as SearchAlbum[];
+      setResults(data);
+      setSearchPage(targetPage);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Search failed.");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   function toggleDarkMode() {
     const nextDark = !darkMode;
@@ -81,15 +132,32 @@ export default function Home() {
     return payload;
   }
 
-  async function refresh(accessToken = token) {
+  async function refresh(accessToken = token, targetPage = libraryPage) {
     if (!accessToken) return;
     setLoading(true);
     try {
-      const [library, insight] = await Promise.all([
-        request("/api/library", {}, accessToken) as Promise<Album[]>,
-        request("/api/analytics", {}, accessToken) as Promise<Analytics>,
-      ]);
-      setAlbums(library);
+      let pageToFetch = targetPage;
+      let libraryData = (await request(
+        `/api/library?page=${pageToFetch}&size=12`,
+        {},
+        accessToken
+      )) as PageResponse<Album>;
+
+      // If we are on a page that is now empty (e.g. due to deletes), pull the previous page
+      if (libraryData.content.length === 0 && pageToFetch > 0) {
+        pageToFetch = pageToFetch - 1;
+        libraryData = (await request(
+          `/api/library?page=${pageToFetch}&size=12`,
+          {},
+          accessToken
+        )) as PageResponse<Album>;
+      }
+
+      const insight = (await request("/api/analytics", {}, accessToken)) as Analytics;
+      setAlbums(libraryData.content);
+      setTotalPages(libraryData.totalPages);
+      setLibraryPage(libraryData.pageNumber);
+      setTotalElements(libraryData.totalElements);
       setAnalytics(insight);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not load your library.");
@@ -128,21 +196,8 @@ export default function Home() {
   async function runSearch(event: FormEvent) {
     event.preventDefault();
     if (!search.trim()) return;
-    setSearching(true);
-    setNotice("");
-    try {
-      setResults(
-        (await request(
-          `/api/search?query=${encodeURIComponent(search.trim())}&type=album`,
-          {},
-          null
-        )) as SearchAlbum[]
-      );
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Search failed.");
-    } finally {
-      setSearching(false);
-    }
+    setDebouncedSearch(search);
+    void executeSearchQuery(search, 0);
   }
 
   async function saveSelected(event: FormEvent) {
@@ -157,7 +212,7 @@ export default function Home() {
       setSelected(null);
       setNotes("");
       setNotice(`Saved ${selected.title} to your library.`);
-      await refresh();
+      await refresh(token, 0);
       setTab("library");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not save this album.");
@@ -250,7 +305,7 @@ export default function Home() {
         <TabButton
           active={tab === "library"}
           onClick={() => setTab("library")}
-          label={`Library ${albums.length ? `(${albums.length})` : ""}`}
+          label={`Library ${totalElements ? `(${totalElements})` : ""}`}
           icon="▤"
         />
       </nav>
@@ -274,6 +329,10 @@ export default function Home() {
             setRating(4);
             setNotes("");
           }}
+          page={searchPage}
+          onPageChange={(nextPage) => {
+            void executeSearchQuery(debouncedSearch || search, nextPage);
+          }}
         />
       )}
       {tab === "library" && (
@@ -282,6 +341,12 @@ export default function Home() {
           onDiscover={() => setTab("discover")}
           onUpdate={updateAlbum}
           onRemove={removeAlbum}
+          page={libraryPage}
+          totalPages={totalPages}
+          onPageChange={(nextPage) => {
+            setLibraryPage(nextPage);
+            void refresh(token, nextPage);
+          }}
         />
       )}
       {selected && (

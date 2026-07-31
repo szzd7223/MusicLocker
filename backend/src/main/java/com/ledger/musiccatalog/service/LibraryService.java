@@ -7,12 +7,22 @@ import com.ledger.musiccatalog.repository.AlbumRepository;
 import com.ledger.musiccatalog.repository.AppUserRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class LibraryService {
     private final AlbumRepository repository; private final AppUserRepository users;
     public LibraryService(AlbumRepository repository, AppUserRepository users) { this.repository = repository; this.users = users; }
     public List<AlbumResponse> findAll(Long userId) { return repository.findAllByOwnerIdOrderByCreatedAtDesc(userId).stream().map(AlbumResponse::from).toList(); }
+    public PageResponse<AlbumResponse> findAllPaginated(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Album> albumPage = repository.findAllByOwnerId(userId, pageable);
+        List<AlbumResponse> content = albumPage.getContent().stream().map(AlbumResponse::from).toList();
+        return new PageResponse<>(content, albumPage.getNumber(), albumPage.getSize(), albumPage.getTotalElements(), albumPage.getTotalPages(), albumPage.isLast());
+    }
     public AlbumResponse create(Long userId, AlbumRequest request) {
         if (repository.existsByAppleCatalogIdAndOwnerId(request.appleCatalogId(), userId)) throw new ConflictException("This Apple catalog album is already in your library");
         Album album = toEntity(request, new Album()); album.setOwner(users.getReferenceById(userId));

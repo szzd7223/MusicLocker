@@ -84,16 +84,17 @@ Here is a breakdown of what does what:
 
 ### 1. State Orchestrator (`app/page.tsx`)
 Acts as the single source of truth for all global states:
-- Authenticated JWT token, username, and dark/light display settings.
+- Authenticated JWT token, username, and dark/light theme state.
 - Active panel tabs (`overview` | `discover` | `library`).
-- Array storage for the user's active library shelf and backend analytics data payloads.
-- Handler callbacks: `request()` (intercepts `401 Unauthorized` errors to log out expired sessions), API calls for `refresh()`, user registration, searching iTunes, updating notes, and removing albums.
+- Tracked page states (`libraryPage` and `searchPage`) for paginated lists.
+- A 500ms input debouncer to delay query fetches until typing pauses.
+- Handler callbacks: `request()` (intercepts `401 Unauthorized` errors to log out expired sessions), API calls for `refresh()`, `executeSearchQuery()`, user registration, updating notes, and removing albums.
 
 ### 2. Core Tab Containers (`components/`)
 - **`AuthScreen.tsx`**: Presents a split panel where the left side outlines the product storytelling with floating vintage album jackets, and the right side collects username/password info.
 - **`Overview.tsx`**: Renders dynamic metric cards and feeds statistics into Recharts components (`PieChart` for genres, `LineChart` for historical timelines, `BarChart` for user score distributions, artist occurrences, and track length buckets).
-- **`Discover.tsx`**: Renders a custom search bar with shortcut keyword suggestions (e.g. *Khruangbin*, *Radiohead*) and lists search items.
-- **`Library.tsx`**: Displays saved albums. Replaced empty pages with catalog discovery call-to-actions.
+- **`Discover.tsx`**: Renders a custom search bar with shortcut suggestions and lists search items, supporting Next/Prev pagination navigation and search input keystroke debouncing.
+- **`Library.tsx`**: Displays saved albums. Groups albums into pages of 12 (perfectly filling the grid columns) and renders page navigation controls at the bottom.
 
 ### 3. Supporting Presentation Widgets
 - **`AlbumCard.tsx`**: Handles album visuals, replacing standard `<img>` with Next.js optimized `<Image />` elements to allow smooth resizing.

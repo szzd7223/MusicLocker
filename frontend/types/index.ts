@@ -32,3 +32,12 @@ export type Analytics = {
 
 export type Tab = "overview" | "discover" | "library";
 export type AuthMode = "login" | "register";
+
+export type PageResponse<T> = {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+};

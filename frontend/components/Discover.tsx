@@ -11,6 +11,8 @@ interface DiscoverProps {
   searching: boolean;
   results: SearchAlbum[];
   choose: (album: SearchAlbum) => void;
+  page: number;
+  onPageChange: (nextPage: number) => void;
 }
 
 export function Discover({
@@ -20,6 +22,8 @@ export function Discover({
   searching,
   results,
   choose,
+  page,
+  onPageChange,
 }: DiscoverProps) {
   return (
     <section className="content fade-in">
@@ -70,6 +74,44 @@ export function Discover({
           />
         ))}
       </div>
+
+      {results.length > 0 && (
+        <div
+          className="pagination-bar"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "1.5rem",
+            marginTop: "2.5rem",
+            padding: "1.5rem 0",
+            borderTop: "1px solid var(--line)",
+          }}
+        >
+          <button
+            className="button ghost"
+            disabled={page === 0 || searching}
+            onClick={() => onPageChange(page - 1)}
+            style={{ opacity: page === 0 ? 0.4 : 1 }}
+          >
+            ← Previous
+          </button>
+          <span
+            className="mono"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem" }}
+          >
+            Page {page + 1}
+          </span>
+          <button
+            className="button ghost"
+            disabled={results.length < 12 || searching}
+            onClick={() => onPageChange(page + 1)}
+            style={{ opacity: results.length < 12 ? 0.4 : 1 }}
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </section>
   );
 }
