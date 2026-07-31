@@ -1,283 +1,95 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { Song, Analytics, SearchSong, Tab, PageResponse, Curation } from "../types";
-import { API, apiError } from "../utils/api";
+import { useEffect, useState } from "react";
+import { Tab } from "../types";
 import { AuthScreen } from "../components/AuthScreen";
 import { Overview } from "../components/Overview";
 import { Discover } from "../components/Discover";
 import { Library } from "../components/Library";
 import { SaveDialog } from "../components/SaveDialog";
 import { TabButton } from "../components/TabButton";
+import { useNotice } from "../hooks/useNotice";
+import { useAuth } from "../hooks/useAuth";
+import { useSearch } from "../hooks/useSearch";
+import { useLibrary } from "../hooks/useLibrary";
 
 export default function Home() {
-  const [token, setToken] = useState<string | null>(null);
-  const [username, setUsername] = useState("");
   const [tab, setTab] = useState<Tab>("overview");
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [notice, setNotice] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register">("register");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [results, setResults] = useState<SearchSong[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<SearchSong | null>(null);
-  const [rating, setRating] = useState(4);
-  const [notes, setNotes] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
 
-  const [libraryPage, setLibraryPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
-  const [searchPage, setSearchPage] = useState(0);
+  // Hook 1: Notice Banner
+  const { notice, setNotice } = useNotice();
 
-  // AI Curation states
-  const [curation, setCuration] = useState<Curation | null>(null);
-  const [generatingCuration, setGeneratingCuration] = useState(false);
+  // Hook 2: Authentication & Theme
+  const {
+    token,
+    username,
+    authMode,
+    setAuthMode,
+    darkMode,
+    toggleDarkMode,
+    loading: authLoading,
+    logout,
+    authenticate,
+  } = useAuth({
+    setNotice,
+  });
 
+  // Hook 3: iTunes Search
+  const {
+    search,
+    setSearch,
+    debouncedSearch,
+    setDebouncedSearch,
+    results,
+    searching,
+    searchPage,
+    executeSearchQuery,
+    runSearch,
+  } = useSearch({
+    token,
+    logout,
+    setNotice,
+  });
+
+  // Hook 4: User Library, Analytics & Curation
+  const {
+    songs,
+    libraryPage,
+    totalPages,
+    totalElements,
+    analytics,
+    curation,
+    generatingCuration,
+    loading: libraryLoading,
+    selected,
+    setSelected,
+    rating,
+    setRating,
+    notes,
+    setNotes,
+    clearLibraryState,
+    refresh,
+    generateCuration,
+    saveSelected,
+    updateSong,
+    removeSong,
+  } = useLibrary({
+    token,
+    logout,
+    setNotice,
+    setTab,
+  });
+
+  const loading = authLoading || libraryLoading;
+
+  // React to token changes (loading library or clearing states)
   useEffect(() => {
-    const stored = window.localStorage.getItem("record-room-token");
-    const storedName = window.localStorage.getItem("record-room-username");
-    if (stored) {
-      setToken(stored);
-      setUsername(storedName ?? "Listener");
-    }
-
-    const storedDark = window.localStorage.getItem("record-room-dark-mode");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initialDark = storedDark ? storedDark === "true" : prefersDark;
-    setDarkMode(initialDark);
-    if (initialDark) {
-      document.body.classList.add("dark");
+    if (!token) {
+      clearLibraryState();
     } else {
-      document.body.classList.remove("dark");
+      void refresh(token);
     }
-  }, []);
-
-  useEffect(() => {
-    if (token) void refresh(token);
   }, [token]);
-
-  // Handle catalog search debouncing
-  useEffect(() => {
-    if (!search.trim()) {
-      setResults([]);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // Execute catalog search when debounced term changes
-  useEffect(() => {
-    if (!debouncedSearch.trim()) {
-      setResults([]);
-      return;
-    }
-    void executeSearchQuery(debouncedSearch, 0);
-  }, [debouncedSearch]);
-
-  async function executeSearchQuery(queryText: string, targetPage = 0) {
-    if (!queryText.trim()) {
-      setResults([]);
-      return;
-    }
-    setSearching(true);
-    setNotice("");
-    try {
-      const data = (await request(
-        `/api/search?query=${encodeURIComponent(queryText.trim())}&type=song&page=${targetPage}&size=12`,
-        {},
-        null
-      )) as SearchSong[];
-      setResults(data);
-      setSearchPage(targetPage);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Search failed.");
-    } finally {
-      setSearching(false);
-    }
-  }
-
-  function toggleDarkMode() {
-    const nextDark = !darkMode;
-    setDarkMode(nextDark);
-    window.localStorage.setItem("record-room-dark-mode", String(nextDark));
-    if (nextDark) {
-      document.body.classList.add("dark");
-    } else {
-      document.body.classList.remove("dark");
-    }
-  }
-
-  async function request(path: string, options: RequestInit = {}, accessToken = token) {
-    const response = await fetch(`${API}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...options.headers,
-      },
-    });
-    if (response.status === 401) {
-      logout();
-      throw new Error("Session expired. Please sign in again.");
-    }
-    const payload = response.status === 204 ? null : await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(apiError(payload, `Request failed (${response.status})`));
-    }
-    return payload;
-  }
-
-  async function refresh(accessToken = token, targetPage = libraryPage) {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      let pageToFetch = targetPage;
-      let libraryData = (await request(
-        `/api/library?page=${pageToFetch}&size=12`,
-        {},
-        accessToken
-      )) as PageResponse<Song>;
-
-      // If we are on a page that is now empty (e.g. due to deletes), pull the previous page
-      if (libraryData.content.length === 0 && pageToFetch > 0) {
-        pageToFetch = pageToFetch - 1;
-        libraryData = (await request(
-          `/api/library?page=${pageToFetch}&size=12`,
-          {},
-          accessToken
-        )) as PageResponse<Song>;
-      }
-
-      const insight = (await request("/api/analytics", {}, accessToken)) as Analytics;
-      setSongs(libraryData.content);
-      setTotalPages(libraryData.totalPages);
-      setLibraryPage(libraryData.pageNumber);
-      setTotalElements(libraryData.totalElements);
-      setAnalytics(insight);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not load your library.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function generateCuration() {
-    if (!token) return;
-    setGeneratingCuration(true);
-    setNotice("");
-    try {
-      const data = (await request("/api/curator", {}, token)) as Curation;
-      setCuration(data);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Curator generation failed.");
-    } finally {
-      setGeneratingCuration(false);
-    }
-  }
-
-  async function authenticate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setNotice("");
-    setLoading(true);
-    const form = new FormData(event.currentTarget);
-    const nextUsername = String(form.get("username") ?? "");
-    try {
-      const payload = (await request(
-        `/api/auth/${authMode}`,
-        {
-          method: "POST",
-          body: JSON.stringify({ username: nextUsername, password: form.get("password") }),
-        },
-        null
-      )) as { token: string };
-      window.localStorage.setItem("record-room-token", payload.token);
-      window.localStorage.setItem("record-room-username", nextUsername);
-      setUsername(nextUsername);
-      setToken(payload.token);
-      setNotice(authMode === "register" ? "Your record room is ready." : "Welcome back.");
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not authenticate.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function runSearch(event: FormEvent) {
-    event.preventDefault();
-    if (!search.trim()) return;
-    setDebouncedSearch(search);
-    void executeSearchQuery(search, 0);
-  }
-
-  async function saveSelected(event: FormEvent) {
-    event.preventDefault();
-    if (!selected) return;
-    setLoading(true);
-    try {
-      await request("/api/library", {
-        method: "POST",
-        body: JSON.stringify({ ...selected, userRating: rating, userNotes: notes }),
-      });
-      setSelected(null);
-      setNotes("");
-      setNotice(`Saved ${selected.title} to your library.`);
-      await refresh(token, 0);
-      setTab("library");
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not save this song.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function updateSong(song: Song, patch: Partial<Song>) {
-    setLoading(true);
-    try {
-      await request(`/api/library/${song.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ ...song, ...patch }),
-      });
-      setNotice("Song details updated.");
-      await refresh();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not update song.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function removeSong(song: Song) {
-    if (!window.confirm(`Remove “${song.title}” from your library?`)) return;
-    setLoading(true);
-    try {
-      await request(`/api/library/${song.id}`, { method: "DELETE" });
-      setNotice("Song removed.");
-      await refresh();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not remove song.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function logout() {
-    window.localStorage.removeItem("record-room-token");
-    window.localStorage.removeItem("record-room-username");
-    setToken(null);
-    setSongs([]);
-    setAnalytics(null);
-    setCuration(null);
-    setNotice("Signed out safely.");
-  }
 
   if (!token) {
     return (
@@ -329,8 +141,8 @@ export default function Home() {
         />
       </nav>
       {notice && (
-        <div className="notice" role="status">
-          {notice}
+        <div className={`notice ${notice.type}`} role="status">
+          {notice.message}
           <button onClick={() => setNotice("")}>×</button>
         </div>
       )}
@@ -377,7 +189,6 @@ export default function Home() {
           page={libraryPage}
           totalPages={totalPages}
           onPageChange={(nextPage) => {
-            setLibraryPage(nextPage);
             void refresh(token, nextPage);
           }}
         />

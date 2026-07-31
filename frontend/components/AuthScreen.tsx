@@ -8,7 +8,7 @@ interface AuthScreenProps {
   setMode: (mode: AuthMode) => void;
   submit: (e: FormEvent<HTMLFormElement>) => void;
   loading: boolean;
-  notice: string;
+  notice: { message: string; type: "success" | "error" } | null;
   darkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -72,7 +72,7 @@ export function AuthScreen({
               ? "It takes less than a minute."
               : "Your listening story is waiting."}
           </p>
-          {notice && <div className="notice">{notice}</div>}
+          {notice && <div className={`notice ${notice.type}`}>{notice.message}</div>}
           <form onSubmit={submit} className="auth-form">
             <label>
               Username
