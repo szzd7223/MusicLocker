@@ -1,7 +1,5 @@
 # Music Catalog Insights Platform
 
-This repository is the starting point for the Ledger CFO take-home assignment specific info.
-
 ## Current scope
 
 The project focuses on **songs**. Songs represent the most granular, popular, and interactive unit of a music catalog. Focusing on individual songs allows users to track their precise listening preferences (track duration), score single tracks, and get more focused analytics on specific songs rather than general albums.
@@ -244,7 +242,7 @@ Use the returned `token` as a Bearer token for `/api/library` requests.
 
 ---
 
-## Assignment alignment
+## Assignment Specific Information
 
 - Focus: Songs, stated above with rationale.
 - Schema: all requested saved-library fields are represented in the `Song` entity:
