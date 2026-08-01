@@ -5,7 +5,7 @@ import { apiRequest } from "../utils/api";
 interface UseSearchOptions {
   token: string | null;
   logout: () => void;
-  setNotice: (msg: string, type?: "success" | "error") => void;
+  setNotice: (msg: string, type?: "success" | "error", duration?: number) => void;
 }
 
 export function useSearch({ token, logout, setNotice }: UseSearchOptions) {

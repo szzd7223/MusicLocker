@@ -98,7 +98,8 @@ export default function Home() {
     const handleSlowRequest = () => {
       setNotice(
         "Note: The server is taking longer than usual to respond. Since it is deployed on Render's free tier, the first request can take up to a minute due to cold starts. Thank you for your patience!",
-        "success"
+        "success",
+        15000
       );
     };
 

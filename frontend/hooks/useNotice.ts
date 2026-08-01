@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 export interface NoticeState {
   message: string;
   type: "success" | "error";
+  duration: number;
 }
 
 export function useNotice() {
@@ -12,16 +13,16 @@ export function useNotice() {
     if (notice) {
       const timer = setTimeout(() => {
         setNoticeState(null);
-      }, 3000);
+      }, notice.duration);
       return () => clearTimeout(timer);
     }
   }, [notice]);
 
-  const setNotice = (message: string, type: "success" | "error" = "success") => {
+  const setNotice = (message: string, type: "success" | "error" = "success", duration: number = 3000) => {
     if (!message) {
       setNoticeState(null);
     } else {
-      setNoticeState({ message, type });
+      setNoticeState({ message, type, duration });
     }
   };
 

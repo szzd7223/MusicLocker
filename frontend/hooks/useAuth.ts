@@ -1,9 +1,9 @@
 import { useState, useEffect, FormEvent } from "react";
 import { AuthMode } from "../types";
-import { apiRequest } from "../utils/api";
+import { API, apiRequest } from "../utils/api";
 
 interface UseAuthOptions {
-  setNotice: (msg: string, type?: "success" | "error") => void;
+  setNotice: (msg: string, type?: "success" | "error", duration?: number) => void;
   onLogout?: () => void;
 }
 
@@ -20,6 +20,10 @@ export function useAuth({ setNotice, onLogout }: UseAuthOptions) {
     if (stored) {
       setToken(stored);
       setUsername(storedName ?? "Listener");
+    } else {
+      // No stored session — user will see the login screen.
+      // Fire-and-forget: wake up the Render backend while user types credentials.
+      fetch(`${API}/api/health`).catch(() => {});
     }
 
     const storedDark = window.localStorage.getItem("music-locker-dark-mode");
