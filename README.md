@@ -1,9 +1,6 @@
 # Music Catalog Insights Platform
 
-This repository is the starting point for the Ledger CFO take-home assignment.
-
-> [!NOTE]
-> **Production Cold Start Warning:** The production API backend is hosted on Render's free tier. If the service has been inactive for more than 15 minutes, Render spins down the server. The first request (such as signing in or registering) may suffer from a **cold start delay of 50 seconds to 1 minute** while the container boots back up. Subsequent requests will run immediately.
+This repository is the starting point for the Ledger CFO take-home assignment specific info.
 
 ## Current scope
 
@@ -41,6 +38,156 @@ The local development database is **H2** (file-backed), migrating seamlessly to 
 4. **Local-to-Cloud Portability:** Standard SQL/JPA configurations let me run lightweight, zero-dependency H2 databases locally and promote to production PostgreSQL with no code modifications.
 
 ---
+
+## Database Schema
+
+The database consists of two primary tables: `app_users` and `songs`, representing a one-to-many relationship where a user owns multiple saved songs.
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    APP_USERS {
+        BIGINT id PK
+        VARCHAR username
+        VARCHAR password_hash
+        TIMESTAMP created_at
+    }
+    SONGS {
+        BIGINT id PK
+        BIGINT apple_catalog_id
+        BIGINT user_id FK
+        VARCHAR title
+        VARCHAR artist_name
+        VARCHAR genre
+        DATE release_date
+        INTEGER duration
+        VARCHAR artwork_url
+        INTEGER user_rating
+        VARCHAR user_notes
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    APP_USERS ||--o{ SONGS : owns
+```
+
+### Table Definitions
+
+#### `app_users`
+Stores user profiles and login credentials.
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `BIGINT` | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique identifier for each user |
+| `username` | `VARCHAR(50)` | `NOT NULL`, `UNIQUE` | Selected username |
+| `password_hash` | `VARCHAR(100)` | `NOT NULL` | BCrypt-hashed password |
+| `created_at` | `TIMESTAMP` | `NOT NULL` | Account creation timestamp |
+
+#### `songs`
+Stores track details saved to user libraries.
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| `id` | `BIGINT` | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique identifier for each saved song |
+| `apple_catalog_id` | `BIGINT` | `NOT NULL` | iTunes/Apple track catalog ID |
+| `user_id` | `BIGINT` | `NOT NULL`, `FOREIGN KEY` | Reference to `app_users(id)` |
+| `title` | `VARCHAR(255)` | `NOT NULL` | Title of the track |
+| `artist_name` | `VARCHAR(255)` | `NOT NULL` | Artist name |
+| `genre` | `VARCHAR(255)` | | Genre name |
+| `release_date` | `DATE` | | Release date |
+| `duration` | `INTEGER` | | Track duration in milliseconds |
+| `artwork_url` | `VARCHAR(1000)` | | URL to cover artwork |
+| `user_rating` | `INTEGER` | | 1-5 rating score |
+| `user_notes` | `VARCHAR(4000)` | | Custom review comments / personal notes |
+| `created_at` | `TIMESTAMP` | `NOT NULL` | Timestamp when song was added to library |
+| `updated_at` | `TIMESTAMP` | `NOT NULL` | Timestamp of last song update |
+
+*   **Indexes & Constraints:**
+    *   A foreign key constraint links `user_id` in `songs` to `id` in `app_users` with cascade delete.
+    *   A unique constraint `uk_song_user_catalog_id` is defined on `(user_id, apple_catalog_id)` to prevent duplicate entries of the same song in a user's library.
+
+---
+
+## AI Response Schema
+
+The Gemini AI Curator service (`/api/curator`) analyzes the user's saved song collection and returns a structured JSON response matching the following schema definition:
+
+### JSON Schema Specification
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CurationResponse",
+  "type": "object",
+  "properties": {
+    "persona": {
+      "type": "string",
+      "description": "A 2-3 word musical personality archetype (e.g., 'Chill Indie Explorer')."
+    },
+    "summary": {
+      "type": "string",
+      "description": "A 2-3 sentence engaging breakdown of their taste and patterns, mentioning specific details from their library."
+    },
+    "critique": {
+      "type": "string",
+      "description": "A witty, slightly humorous 1-2 sentence critique of their library (friendly roast or observation)."
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "A list of 5 tailored song recommendations based on their existing library.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the recommended song."
+          },
+          "artist": {
+            "type": "string",
+            "description": "Artist of the recommended song."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Explanation of why they would love this track based on specific songs in their library."
+          }
+        },
+        "required": ["title", "artist", "rationale"]
+      }
+    },
+    "isMock": {
+      "type": "boolean",
+      "description": "Flag indicating if the response is mock sample data (e.g., if the Gemini API key was not configured)."
+    }
+  },
+  "required": ["persona", "summary", "critique", "recommendations", "isMock"]
+}
+```
+
+### JSON Response Example
+
+```json
+{
+  "persona": "Vibrant Melophile",
+  "summary": "Your library showcases an eclectic appreciation for catchy melodies and rhythmic grooves. You have a solid rotation of distinct artists, with release dates indicating a healthy mix of modern releases and classic formats.",
+  "critique": "You seem to rate almost everything 5 stars. Don't be afraid to be critical—even your favorite artists have some skips!",
+  "recommendations": [
+    {
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "rationale": "Matches your love for high-energy synth-pop hooks."
+    },
+    {
+      "title": "Bohemian Rhapsody",
+      "artist": "Queen",
+      "rationale": "An essential masterpiece of theatrical vocal ranges and rock shifts."
+    }
+  ],
+  "isMock": false
+}
+```
+
+---
+
 
 ## Production Deployment Architecture
 
@@ -156,3 +303,8 @@ During development, several strategic decisions were made to prioritize performa
 4. **Event-Based In-App Slow-Request Warnings vs. Paid Warming Pinger**
    * *Context:* Preventing Render's free tier sleep mode.
    * *Trade-off:* Rather than paying for a warming server or using external ping checkers (which Render aggressively filters/blocks), I implemented client-side custom event listeners to notify users when a request exceeds 15 seconds. This keeps hosting completely free while preventing users from thinking the application is broken during cold starts.
+
+---
+
+> [!NOTE]
+> **Production Cold Start Warning:** The production API backend is hosted on Render's free tier. If the service has been inactive for more than 15 minutes, Render spins down the server. The first request (such as signing in or registering) may suffer from a **cold start delay of 50 seconds to 1 minute** while the container boots back up. Subsequent requests will run immediately.
