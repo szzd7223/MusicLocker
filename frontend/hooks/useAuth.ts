@@ -15,14 +15,14 @@ export function useAuth({ setNotice, onLogout }: UseAuthOptions) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("record-room-token");
-    const storedName = window.localStorage.getItem("record-room-username");
+    const stored = window.localStorage.getItem("music-locker-token");
+    const storedName = window.localStorage.getItem("music-locker-username");
     if (stored) {
       setToken(stored);
       setUsername(storedName ?? "Listener");
     }
 
-    const storedDark = window.localStorage.getItem("record-room-dark-mode");
+    const storedDark = window.localStorage.getItem("music-locker-dark-mode");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const initialDark = storedDark ? storedDark === "true" : prefersDark;
     setDarkMode(initialDark);
@@ -36,7 +36,7 @@ export function useAuth({ setNotice, onLogout }: UseAuthOptions) {
   function toggleDarkMode() {
     const nextDark = !darkMode;
     setDarkMode(nextDark);
-    window.localStorage.setItem("record-room-dark-mode", String(nextDark));
+    window.localStorage.setItem("music-locker-dark-mode", String(nextDark));
     if (nextDark) {
       document.body.classList.add("dark");
     } else {
@@ -45,8 +45,8 @@ export function useAuth({ setNotice, onLogout }: UseAuthOptions) {
   }
 
   function logout() {
-    window.localStorage.removeItem("record-room-token");
-    window.localStorage.removeItem("record-room-username");
+    window.localStorage.removeItem("music-locker-token");
+    window.localStorage.removeItem("music-locker-username");
     setToken(null);
     setNotice("Signed out safely.");
     if (onLogout) {
@@ -70,11 +70,11 @@ export function useAuth({ setNotice, onLogout }: UseAuthOptions) {
         null,
         logout
       )) as { token: string };
-      window.localStorage.setItem("record-room-token", payload.token);
-      window.localStorage.setItem("record-room-username", nextUsername);
+      window.localStorage.setItem("music-locker-token", payload.token);
+      window.localStorage.setItem("music-locker-username", nextUsername);
       setUsername(nextUsername);
       setToken(payload.token);
-      setNotice(authMode === "register" ? "Your record room is ready." : "Welcome back.");
+      setNotice(authMode === "register" ? "Your MusicLocker is ready." : "Welcome back.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not authenticate.", "error");
     } finally {

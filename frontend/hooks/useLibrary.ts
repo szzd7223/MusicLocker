@@ -130,7 +130,6 @@ export function useLibrary({ token, logout, setNotice, setTab }: UseLibraryOptio
   }
 
   async function removeSong(song: Song) {
-    if (!window.confirm(`Remove “${song.title}” from your library?`)) return;
     setLoading(true);
     try {
       await apiRequest(`/api/library/${song.id}`, { method: "DELETE" }, token, logout);

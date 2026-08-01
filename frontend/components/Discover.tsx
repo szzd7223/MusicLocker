@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { SearchSong } from "../types";
 import { SongCard } from "./SongCard";
 
@@ -25,6 +25,21 @@ export function Discover({
   page,
   onPageChange,
 }: DiscoverProps) {
+  const [hint, setHint] = useState("Search for a song or artist to get started.");
+
+  useEffect(() => {
+    const prompts = [
+      "What do you feel like listening to today?",
+      "Let's discover your new on repeat.",
+      "What is the soundtrack to your current mood?",
+      "Dig into the crates. What sounds are you chasing?",
+      "Search a genre, a year, or an artist that moves you.",
+      "Let's find some songs to lock into your library.",
+      "Ready to explore? Search for a classic or a new favorite."
+    ];
+    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+    setHint(randomPrompt);
+  }, []);
   return (
     <section className="content fade-in">
       <div className="section-title">
@@ -47,21 +62,7 @@ export function Discover({
       {!results.length && !searching && (
         <div className="discover-hint">
           <span>✦</span>
-          <p>
-            Try{" "}
-            <button type="button" onClick={() => setQuery("Khruangbin")}>
-              Khruangbin
-            </button>
-            ,{" "}
-            <button type="button" onClick={() => setQuery("Nina Simone")}>
-              Nina Simone
-            </button>
-            , or{" "}
-            <button type="button" onClick={() => setQuery("Radiohead")}>
-              Radiohead
-            </button>
-            .
-          </p>
+          <p>{hint}</p>
         </div>
       )}
       <div className="album-grid">

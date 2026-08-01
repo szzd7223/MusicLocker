@@ -84,7 +84,6 @@ export function Overview({
           <p className="eyebrow">THE BIG PICTURE</p>
           <h2>Your listening landscape.</h2>
         </div>
-        <span className="live-dot">Updated live</span>
       </div>
       
       <div className="metric-grid">
@@ -99,13 +98,15 @@ export function Overview({
       <div className="chart-grid">
         {/* Widescreen AI Music Curator Section */}
         <ChartCard
-          title="Gemini Music Curator"
+          title="AI Music Curator"
           subtitle="Personalized library breakdown & critiques"
           wide
         >
           {generatingCuration ? (
             <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
-              <div className="loading-line" style={{ position: "relative", marginBottom: "1.5rem" }} />
+              <div style={{ position: "relative", width: "100%", height: "2px", overflow: "hidden", marginBottom: "1.5rem", background: "var(--line)" }}>
+                <div className="loading-line" style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} />
+              </div>
               <p className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: "var(--ink-muted)" }}>
                 Analyzing patterns, drafting critique notes...
               </p>
@@ -113,10 +114,10 @@ export function Overview({
           ) : !curation ? (
             <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
               <p style={{ margin: "0 0 1.5rem", fontSize: "1.05rem", color: "var(--ink-muted)" }}>
-                Let Gemini analyze your ratings, notes, and genres to uncover your musical archetype.
+                Let AI analyze your ratings, notes, and genres to uncover your musical archetype.
               </p>
               <button className="button primary" onClick={onGenerateCuration}>
-                Ask Gemini Curator <span>✦</span>
+                Ask AI Curator <span>✦</span>
               </button>
             </div>
           ) : (
@@ -145,7 +146,7 @@ export function Overview({
                     borderRadius: "4px",
                     color: "var(--ink-muted)"
                   }}>
-                    Showing Demo insights (Set GEMINI_API_KEY for live curations)
+                    Showing Demo insights (Set GEMINI_API_KEY for live AI insights)
                   </span>
                 )}
                 <button className="button ghost small" onClick={onGenerateCuration} style={{ alignSelf: "flex-end" }}>

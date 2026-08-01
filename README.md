@@ -2,6 +2,9 @@
 
 This repository is the starting point for the Ledger CFO take-home assignment.
 
+> [!NOTE]
+> **Production Cold Start Warning:** The production API backend is hosted on Render's free tier. If the service has been inactive for more than 15 minutes, Render spins down the server. The first request (such as signing in or registering) may suffer from a **cold start delay of 50 seconds to 1 minute** while the container boots back up. Subsequent requests will run immediately.
+
 ## Current scope
 
 The project focuses on **songs**. Songs represent the most granular, popular, and interactive unit of a music catalog. Focusing on individual songs allows users to track their precise listening preferences (track duration), score single tracks, and get more focused analytics on specific songs rather than general albums.
@@ -27,9 +30,25 @@ Initially, the project was designed to catalog entire albums. However, to create
 
 ---
 
-## Database choice
+## Database choice & SQL Justification
 
-The local development database is **H2**, a relational SQL database stored in a file. It is zero-configuration for a beginner while preserving the same JPA/SQL modelling that can move to PostgreSQL for production. Only saved songs are stored; iTunes search results are fetched live and are not persisted until the user saves one.
+The local development database is **H2** (file-backed), migrating seamlessly to **Serverless PostgreSQL (Neon.tech)** in production. 
+
+### Why SQL was chosen over NoSQL:
+1. **Relational Integrity:** There is a strict one-to-many relationship between a user profile (`AppUser`) and their saved library tracks (`Song`). Using SQL allows me to enforce foreign key constraints (`user_id` referencing `app_users.id`) with cascade operations, preventing orphaned database records.
+2. **Aggregations for Analytics:** My dashboard tracks genre distributions, release years, rating frequencies, and song durations. Relational databases support mature, optimized indexing and GROUP BY aggregations, making analytics queries highly efficient.
+3. **Transactional Safety (ACID):** User credentials and JWT authentication depend on reliable ACID compliance, ensuring registration and state updates are either fully committed or rolled back.
+4. **Local-to-Cloud Portability:** Standard SQL/JPA configurations let me run lightweight, zero-dependency H2 databases locally and promote to production PostgreSQL with no code modifications.
+
+---
+
+## Production Deployment Architecture
+
+For the production environment, the platform is decoupled and hosted using modern cloud services:
+
+*   **Backend API:** Containerized using Docker (`backend/Dockerfile`) and deployed as a Web Service on **[Render.com](https://render.com/)**.
+*   **Frontend Dashboard:** Built as a static/serverless Next.js app and deployed on **[Vercel.com](https://vercel.com/)** for fast edge delivery.
+*   **Database:** A serverless PostgreSQL instance hosted on **[Neon.tech](https://neon.tech/)** (neondb) to persist saved songs, library metrics, and user credentials securely.
 
 ---
 
@@ -39,21 +58,23 @@ See [BACKEND_GUIDE.md](BACKEND_GUIDE.md) and [FRONTEND_GUIDE.md](FRONTEND_GUIDE.
 
 From the repository root:
 
-```powershell
+```bash
 cd backend
 mvn spring-boot:run
 ```
 
 The API starts at `http://localhost:8080`. Confirm the backend is running:
 
-```powershell
-Invoke-RestMethod http://localhost:8080/api/health
+```bash
+curl http://localhost:8080/api/health
 ```
 
-It should return `status: UP`. Then create an account; the response includes a JWT:
+It should return `{"status": "UP"}`. Then create an account to get a JWT:
 
-```powershell
-Invoke-RestMethod -Method Post http://localhost:8080/api/auth/register -ContentType 'application/json' -Body '{"username":"alice","password":"secure-password-123"}'
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"secure-password-123"}'
 ```
 
 Use the returned `token` as a Bearer token for `/api/library` requests.
@@ -105,3 +126,33 @@ During the implementation of advanced performance and pagination features, I enc
 ### 3. Front-End API Spamming & Debounced Search
 *   **The Problem:** Originally, catalog searches only ran on manual form submissions. When making it feel reactive, a naive search implementation would fire an API call for every keystroke. This causes high network overhead, sluggish UI response times, and race conditions where older requests complete after newer ones.
 *   **The Fix:** I built a custom 500ms debouncing hook in Next.js (`frontend/app/page.tsx`). The application buffers user input and only fires the search request 500ms after the user stops typing, saving network bandwidth and creating a smooth, responsive user interface.
+
+### 4. Database Connection String for Backend Deployment
+*   **The Problem:** During backend deployment, establishing the database connection to Neon PostgreSQL required a specific connection string structure that didn't match default assumptions. I ran into initial connectivity failures due to differences in format requirements.
+*   **The Fix:** I went through developer forums and official documentation to understand the correct connection string format (such as converting the serverless URL prefix to the proper JDBC protocol format). Once configured correctly in the environment variables, the backend successfully established connection to the PostgreSQL instance.
+
+### 5. CORS Configuration and Next.js Security Vulnerability on Vercel
+*   **The Problem:** Deploying the application frontend to Vercel presented two main challenges. First, CORS issues prevented the frontend from communicating with the backend API. Second, Vercel flagged a critical security vulnerability in the existing Next.js version, blocking the build from completing successfully.
+*   **The Fix:** I configured CORS correctly on the Render backend service by setting the `ALLOWED_ORIGINS` environment variable to match the deployed Vercel domain. For the security blocker, I updated the Next.js version to patch the vulnerability, pulled the changes, and triggered a new deployment which built and deployed successfully.
+
+---
+
+## Architectural Trade-offs
+
+During development, several strategic decisions were made to prioritize performance, developer experience, and cost limits:
+
+1. **In-Memory Search Slicing vs. Real API Pagination**
+   * *Context:* The iTunes Search API does not respect request offsets (`offset` parameter) for pagination in real-world use.
+   * *Trade-off:* I fetch up to 40 results and slice them dynamically in-memory on the backend. This gives lightning-fast page transitions on the frontend. The trade-off is I cannot browse hundreds of results, but for a catalog search and curation engine, 40 highly relevant results is more than sufficient.
+
+2. **On-Demand AI Curator vs. Database Listeners**
+   * *Context:* Generating custom personas and critiques via the Gemini API.
+   * *Trade-off:* I trigger the Gemini API on-demand when the user clicks the "Ask Gemini Curator" button rather than on every database change. This keeps the backend server simple, avoids unnecessary API request spam, and limits token usage, though it requires the user to wait a few seconds when requesting updated curation feedback.
+
+3. **Monolithic Backend with Decoupled Services vs. Microservices**
+   * *Context:* Structuring the backend code.
+   * *Trade-off:* I built a single, clean Spring Boot container containing authentication, searching, library management, and AI services. This minimizes deployment overhead and cross-service communication issues on free tiers, though a larger application would eventually benefit from splitting out the AI and Catalog Search proxies.
+
+4. **Event-Based In-App Slow-Request Warnings vs. Paid Warming Pinger**
+   * *Context:* Preventing Render's free tier sleep mode.
+   * *Trade-off:* Rather than paying for a warming server or using external ping checkers (which Render aggressively filters/blocks), I implemented client-side custom event listeners to notify users when a request exceeds 15 seconds. This keeps hosting completely free while preventing users from thinking the application is broken during cold starts.

@@ -2,6 +2,7 @@
 
 import { FormEvent } from "react";
 import { AuthMode } from "../types";
+import { RecordIcon } from "./RecordIcon";
 
 interface AuthScreenProps {
   mode: AuthMode;
@@ -26,8 +27,8 @@ export function AuthScreen({
     <main className="auth-page">
       <section className="auth-story">
         <div className="brand">
-          <span className="brand-mark">R</span>
-          <span>record room</span>
+          <RecordIcon className="logo-spin" />
+          <span>MusicLocker</span>
         </div>
         <div className="auth-copy">
           <p className="eyebrow">A PERSONAL MUSIC JOURNAL</p>

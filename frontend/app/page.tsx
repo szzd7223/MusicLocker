@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tab } from "../types";
+import { Tab, Song } from "../types";
 import { AuthScreen } from "../components/AuthScreen";
 import { Overview } from "../components/Overview";
 import { Discover } from "../components/Discover";
 import { Library } from "../components/Library";
 import { SaveDialog } from "../components/SaveDialog";
 import { TabButton } from "../components/TabButton";
+import { RecordIcon } from "../components/RecordIcon";
 import { useNotice } from "../hooks/useNotice";
 import { useAuth } from "../hooks/useAuth";
 import { useSearch } from "../hooks/useSearch";
@@ -15,6 +16,7 @@ import { useLibrary } from "../hooks/useLibrary";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("overview");
+  const [songToDelete, setSongToDelete] = useState<Song | null>(null);
 
   // Hook 1: Notice Banner
   const { notice, setNotice } = useNotice();
@@ -91,6 +93,21 @@ export default function Home() {
     }
   }, [token]);
 
+  // React to slow api requests (due to Render cold start)
+  useEffect(() => {
+    const handleSlowRequest = () => {
+      setNotice(
+        "Note: The server is taking longer than usual to respond. Since it is deployed on Render's free tier, the first request can take up to a minute due to cold starts. Thank you for your patience!",
+        "success"
+      );
+    };
+
+    window.addEventListener("api-slow-request", handleSlowRequest);
+    return () => {
+      window.removeEventListener("api-slow-request", handleSlowRequest);
+    };
+  }, [setNotice]);
+
   if (!token) {
     return (
       <AuthScreen
@@ -109,8 +126,8 @@ export default function Home() {
     <main className="app-shell">
       <header className="topbar">
         <button className="brand" onClick={() => setTab("overview")}>
-          <span className="brand-mark">R</span>
-          <span>record room</span>
+          <RecordIcon className="logo-spin" />
+          <span>MusicLocker</span>
         </button>
         <div className="topbar-actions">
           <span className="listener">Hi, {username}</span>
@@ -185,7 +202,7 @@ export default function Home() {
           songs={songs}
           onDiscover={() => setTab("discover")}
           onUpdate={updateSong}
-          onRemove={removeSong}
+          onRemove={(song) => setSongToDelete(song)}
           page={libraryPage}
           totalPages={totalPages}
           onPageChange={(nextPage) => {
@@ -203,6 +220,40 @@ export default function Home() {
           close={() => setSelected(null)}
           submit={saveSelected}
         />
+      )}
+      {songToDelete && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="save-dialog">
+            <button className="close" type="button" onClick={() => setSongToDelete(null)}>
+              ×
+            </button>
+            <p className="eyebrow">REMOVE FROM SHELF</p>
+            <h2>Are you sure?</h2>
+            <p className="muted" style={{ margin: "10px 0 24px" }}>
+              Do you want to remove <strong>“{songToDelete.title}”</strong> by <strong>{songToDelete.artistName}</strong> from your library? This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                type="button"
+                className="button danger wide"
+                onClick={async () => {
+                  const target = songToDelete;
+                  setSongToDelete(null);
+                  await removeSong(target);
+                }}
+              >
+                Remove song <span>→</span>
+              </button>
+              <button
+                type="button"
+                className="button ghost wide"
+                onClick={() => setSongToDelete(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
