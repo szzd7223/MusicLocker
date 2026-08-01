@@ -199,6 +199,8 @@ For the production environment, the platform is decoupled and hosted using moder
 
 ## Quick start
 
+### 1. Start the Backend API
+
 From the repository root:
 
 ```bash
@@ -212,15 +214,19 @@ The API starts at `http://localhost:8080`. Confirm the backend is running:
 curl http://localhost:8080/api/health
 ```
 
-It should return `{"status": "UP"}`. Then create an account to get a JWT:
+It should return `{"status": "UP"}`. 
+
+### 2. Start the Frontend Dashboard
+
+From the repository root in a separate terminal:
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"secure-password-123"}'
+cd frontend
+pnpm install
+pnpm run dev
 ```
 
-Use the returned `token` as a Bearer token for `/api/library` requests.
+The dashboard will start at `http://localhost:3000`. Navigate to `http://localhost:3000` in your web browser to start using the platform.
 
 ---
 
