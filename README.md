@@ -199,8 +199,6 @@ For the production environment, the platform is decoupled and hosted using moder
 
 ## Quick start
 
-See [BACKEND_GUIDE.md](BACKEND_GUIDE.md) and [FRONTEND_GUIDE.md](FRONTEND_GUIDE.md) for step-by-step setup and testing instructions.
-
 From the repository root:
 
 ```bash
